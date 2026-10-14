@@ -666,7 +666,7 @@ lSearch(3)
 lSearch(99)
 ''')
 md("""
-> 📝 **Efficiency:** searching, ordered insertion and deletion are **O(n)** because we may have to follow every pointer. Inserting at the start (mode 0) is **O(1)**.
+> 📝 **Efficiency:** searching, ordered insertion and deletion are **O(n)** because we may have to follow every pointer. Inserting at the start *could* be **O(1)** — but look closely at `lInsert`: in mode 0 the `while` loop still walks the **whole** list before inserting at the start, because the stopping condition only applies to modes 1 and 2. The result is correct, just slower than necessary. 🤔 *How would you change `lInsert` so that mode 0 skips the loop?*
 
 Note that `lSearch` **prints** its result instead of returning it. In a real program (and in the exam) a search function usually **returns** the index, or `-1` if the value isn't there — see exercise E7.
 """)
