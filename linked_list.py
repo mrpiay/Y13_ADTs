@@ -38,10 +38,12 @@ def lReleaseNode(node):
     lHeap = node  # Update the heap pointer to the released node
 
 # Function to search for a value in the linked list
+# Returns the index of the node holding the value, or -1 if it is not in the list
 def lSearch(value, delete=False):
     global lStart, lHeap
     if lEmpty():
         print("List is empty")  # Message when the list is empty
+        return -1
     else:
         prev = -1  # Keeps track of the previous node
         current = lStart  # Start searching from the first node
@@ -55,6 +57,7 @@ def lSearch(value, delete=False):
                 current = lLinks[current]
         if not nodeFound:
             print(value, "not found")  # Value not found in the list
+            return -1
         elif not delete:
             print(value, "found at position", current)  # Value found and no deletion
         else:
@@ -64,10 +67,12 @@ def lSearch(value, delete=False):
             else:
                 lLinks[prev] = lLinks[current]  # Skip the current node
             lReleaseNode(current)  # Release the deleted node back to the heap
+        return current  # Index of the node that was found (or removed)
 
 # Function to remove a node with the specified value
+# Returns the index of the removed node, or -1 if the value was not found
 def lRemove(value):
-    lSearch(value, True)  # Search and delete the node with the given value
+    return lSearch(value, True)  # Search and delete the node with the given value
 
 # Function to insert a value into the linked list
 def lInsert(value, mode=0):
@@ -86,7 +91,8 @@ def lInsert(value, mode=0):
         current = lStart  # Start searching from the first node
         nodeFound = False
         # Traverse the list to find the appropriate position for insertion
-        while current != -1 and not nodeFound:
+        # (mode 0 always inserts at the start, so it skips the traversal)
+        while mode != 0 and current != -1 and not nodeFound:
             if (mode == 1 and lData[current] > value) or (mode == 2 and lData[current] < value):
                 nodeFound = True  # Found the position for insertion
             else:

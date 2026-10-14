@@ -202,7 +202,8 @@ This tutorial uses four small Python programs — `stack.py`, `queue.py`, `linke
 - implement a **stack**, a **circular queue**, a **linked list** and a **binary search tree** using arrays;
 - explain how a **free list** (called the *heap* in this code) recycles unused nodes;
 - **trace** the contents of the arrays and pointers after a sequence of operations — a very common exam question;
-- write new operations (search, count, reverse, traversals…) on top of an existing ADT.
+- write new operations (search, count, reverse, traversals…) on top of an existing ADT;
+- get a first feel for **efficiency**: which operations are fast (O(1)) and which get slower as the data grows (O(n)).
 
 **How to use it**
 
@@ -251,6 +252,25 @@ Python already has lists, `collections.deque` and so on — but in the exam you 
 | `global` | the functions change variables created in `xInit()`, so they must declare them `global` |
 
 > 💡 **Key idea:** In every structure below, the "boxes and arrows" you draw on paper are really just **numbers stored in arrays**. An arrow from node 3 to node 7 simply means "`links[3]` contains `7`".
+
+### How fast is it? A first look at Big-O
+
+In each section you will see a 📝 **Efficiency** note saying how the time an operation takes **grows as the structure gets bigger**. We write this with **Big-O notation**. You will study it properly later in the course; for now, three cases are enough. Here **n** means *the number of items* in the structure.
+
+| Notation | Name | What it means | Everyday example |
+|---|---|---|---|
+| **O(1)** | constant | always the **same number of steps**, however big n is | taking the top plate off a pile |
+| **O(n)** | linear | the steps grow **in proportion** to n: twice the items, twice the work | looking for a friend by walking along a queue, person by person |
+| **O(log n)** | logarithmic | each step **halves** what is left, so doubling n adds just **one** more step | finding a word in a dictionary by opening it in the middle |
+
+To feel the difference, here is roughly how many steps each one needs:
+
+| n (items) | O(1) | O(log n) | O(n) |
+|---|---|---|---|
+| 1 000 | 1 | about 10 | 1 000 |
+| 1 000 000 | 1 | about 20 | 1 000 000 |
+
+> 💡 **Rule of thumb:** look at the loops. **No loop** that depends on the number of items → **O(1)**. A loop that may visit **every item** once → **O(n)**. A loop that **halves** the remaining items each time → **O(log n)**.
 """)
 
 # ---------------------------------------------------------------- 2. Stack
@@ -454,8 +474,8 @@ for value in [10, 20, 30]:
 qShow()
 ''')
 code('''
-qRemove()
-qRemove()
+print("Removed:", qRemove())
+print("Removed:", qRemove())
 qShow()
 ''')
 code('''
@@ -473,10 +493,10 @@ md("""
 > ⚠️ **Notice:** physically the array holds `50 60 30 40`, but the queue order is `30 40 50 60`, starting from `qFront`. Always read a circular queue **from `qFront`, wrapping round**.
 
 Two things to notice in `qRemove()`:
-- unlike `sPop()`, it **does** overwrite the removed slot with `'-'`;
-- it **doesn't return** the removed value — which is not much use in a real program. You will fix that in exercise E4.
+- it **returns** the removed value (or `None` if the queue was empty), so it saves `qData[qFront]` in a variable **before** overwriting it;
+- unlike `sPop()`, it **does** overwrite the removed slot with `'-'`.
 
-> 📝 **Efficiency:** enqueue and dequeue are both **O(1)** — no items are ever shifted along the array.
+> 📝 **Efficiency:** enqueue and dequeue are both **O(1)** — no items are ever shifted along the array, however long the queue is.
 """)
 
 exercise("E3", "Peek at the front",
@@ -505,42 +525,39 @@ def qPeek():
     return qData[qFront]   # front item; no pointers change
 ''')
 
-exercise("E4", "A dequeue that returns the value",
+exercise("E4", "The queue as a list",
 """
-Write `qDequeue()`: it does the same as `qRemove()` **but also returns the value it removed** (or `None` if the queue was empty).
+Write `qToList()` that **returns** a Python list with the items of the queue **in queue order**, from the front to the rear. It must not change the queue.
 
-*Hint:* save `qData[qFront]` in a variable **before** you overwrite it and move the pointer. Don't forget the `global` statement!
+*Hint:* copy the loop in `qPrint()`: start at `qFront`, take `qCount` items, and move with `(current + 1) % qSize`.
 """,
 '''
-def qDequeue():
+def qToList():
     # Your code here
     pass
 ''',
 '''
 qInit()
+check("empty queue", qToList(), [])
 qAdd("A"); qAdd("B")
-check("first dequeue", qDequeue(), "A")
-check("second dequeue", qDequeue(), "B")
-check("dequeue on empty queue", qDequeue(), None)
+check("two items", qToList(), ["A", "B"])
 
 qInit()
 for i in [1, 2, 3, 4]:
     qAdd(i)
-qDequeue(); qDequeue()
+qRemove(); qRemove()
 qAdd(5); qAdd(6)   # these two wrap around to indexes 0 and 1
-check("order after wrap-around", [qDequeue() for _ in range(4)], [3, 4, 5, 6])
+check("order after wrap-around", qToList(), [3, 4, 5, 6])
+check("the queue is unchanged", qCount, 4)
 ''',
 '''
-def qDequeue():
-    global qFront, qCount
-    if qEmpty():
-        print("Queue is empty")
-        return None
-    value = qData[qFront]              # save it before it is overwritten
-    qData[qFront] = '-'
-    qFront = (qFront + 1) % qSize      # move the front pointer circularly
-    qCount = qCount - 1
-    return value
+def qToList():
+    items = []
+    current = qFront
+    for i in range(qCount):
+        items.append(qData[current])
+        current = (current + 1) % qSize   # move to the next slot circularly
+    return items
 ''')
 
 # ---------------------------------------------------------------- 4. Linked list
@@ -662,13 +679,15 @@ for mode in [0, 1, 2]:
     print("mode", mode, "->", lToList())
 
 print()
-lSearch(3)
-lSearch(99)
+position = lSearch(3)
+print("lSearch returned", position)
+position = lSearch(99)
+print("lSearch returned", position)
 ''')
 md("""
-> 📝 **Efficiency:** searching, ordered insertion and deletion are **O(n)** because we may have to follow every pointer. Inserting at the start *could* be **O(1)** — but look closely at `lInsert`: in mode 0 the `while` loop still walks the **whole** list before inserting at the start, because the stopping condition only applies to modes 1 and 2. The result is correct, just slower than necessary. 🤔 *How would you change `lInsert` so that mode 0 skips the loop?*
+`lSearch` prints a message **and returns** the index of the node, or `-1` if the value isn't there — just like a search function in the exam. `lRemove` returns the index of the node it removed (or `-1`).
 
-Note that `lSearch` **prints** its result instead of returning it. In a real program (and in the exam) a search function usually **returns** the index, or `-1` if the value isn't there — see exercise E7.
+> 📝 **Efficiency:** searching, ordered insertion (modes 1 and 2) and deletion are **O(n)** because we may have to follow every pointer. Inserting at the start (mode 0) is **O(1)**: notice the `mode != 0` test in the `while` loop of `lInsert`, which skips the traversal completely.
 """)
 
 exercise("E5", "Count the nodes",
@@ -735,32 +754,46 @@ def lReverse():
     lStart = prev                    # the old last node is the new first node
 ''')
 
-exercise("E7", "A search that returns",
+exercise("E7", "Insert at the end",
 """
-Write `lFind(value)` that **returns** the index of the node containing `value`, or `-1` if it is not in the list (or the list is empty). It must not print anything.
+Write `lAppend(value)` that adds `value` as the **last** node of the list. If the list is full, print `"List is full"` and do nothing.
+
+*Hint:* get a node with `lAllocateNode(value)` and set its link to `-1`. If the list is empty, the new node becomes `lStart`. Otherwise follow the pointers until you reach the node whose link is `-1`, and make it point to the new node.
 """,
 '''
-def lFind(value):
+def lAppend(value):
     # Your code here
     pass
 ''',
 '''
 lInit()
-check("empty list", lFind(5), -1)
-for v in [30, 10, 20]:
-    lInsert(v, 1)
-check("find 20", lFind(20), 2)
-check("find 30", lFind(30), 0)
-check("value not present", lFind(99), -1)
+for v in [3, 1, 2]:
+    lAppend(v)
+check("append 3, 1, 2", lToList(), [3, 1, 2])
+lInsert(0, 0)
+lAppend(9)
+check("mixed with lInsert", lToList(), [0, 3, 1, 2, 9])
+
+lInit()
+for i in range(lSize + 1):   # one too many
+    lAppend(i)
+check("full list keeps lSize nodes", len(lToList()), lSize)
 ''',
 '''
-def lFind(value):
-    current = lStart
-    while current != -1:
-        if lData[current] == value:
-            return current
-        current = lLinks[current]
-    return -1
+def lAppend(value):
+    global lStart
+    if lFull():
+        print("List is full")
+        return
+    newNode = lAllocateNode(value)
+    lLinks[newNode] = -1             # it will be the last node
+    if lEmpty():
+        lStart = newNode
+    else:
+        current = lStart
+        while lLinks[current] != -1:  # stop at the last node
+            current = lLinks[current]
+        lLinks[current] = newNode
 ''')
 
 # ---------------------------------------------------------------- 5. Binary tree
@@ -821,8 +854,12 @@ Both start at the root and repeat: *if the value is smaller go **left**, otherwi
 code('''
 bSearch(1)     # path: 5 -> 3 -> 1
 bSearch(9)     # path: 5 -> 7 -> 9
-bSearch(-1)    # path: 5 -> 3 -> 1 -> 0 -> (no left child) -> not found
+position = bSearch(-1)    # path: 5 -> 3 -> 1 -> 0 -> (no left child) -> not found
+print("bSearch returned", position)
 ''')
+md("""
+Like `lSearch`, `bSearch` prints a message **and returns** the index of the node, or `-1` if the value is not in the tree.
+""")
 md("""
 ### Traversals
 
@@ -1117,6 +1154,7 @@ md("""
 - [ ] I can insert into and delete from a linked list with the *prev / current* pattern.
 - [ ] I can draw a BST from an insertion order **and** fill in its `bLeft`/`bRight` arrays.
 - [ ] I can write pre-, in- and post-order traversals recursively.
+- [ ] I can say whether an operation is O(1), O(n) or O(log n) by looking at its loops.
 
 ### Common mistakes
 

@@ -150,47 +150,46 @@ def lReverse():
 # print()
 # l.lPrint()  
     
-def bFindLeftmostLeaf():
+# The leftmost node holds the minimum value (it is not necessarily a leaf:
+# it may still have a right child)
+def bFindMin():
     if b.bEmpty():
         print("Tree is empty")
     else:
         current = b.bRoot
         while b.bLeft[current] != -1:
             current = b.bLeft[current]
-        print("Leftmost leaf:", b.bData[current])
+        print("Minimum value:", b.bData[current])
 
 # Example usage:
-b.bInit()
-b.bInsert(10)
-b.bInsert(5)
-b.bInsert(15)
-bFindLeftmostLeaf()
+# b.bInit()
+# b.bInsert(10)
+# b.bInsert(5)
+# b.bInsert(15)
+# bFindMin()
 
-def bFindRightmostLeaf():
+# The rightmost node holds the maximum value
+def bFindMax():
     if b.bEmpty():
         print("Tree is empty")
     else:
         current = b.bRoot
         while b.bRight[current] != -1:
             current = b.bRight[current]
-        print("Rightmost leaf:", b.bData[current])
+        print("Maximum value:", b.bData[current])
 
 # Example usage:
-b.bInit()
-b.bInsert(10)
-b.bInsert(5)
-b.bInsert(15)
-bFindRightmostLeaf()
-    
-    
-    
-    
-  
-  
-  
-  
-  
-    
-    
-    
-    
+# b.bInit()
+# b.bInsert(10)
+# b.bInsert(5)
+# b.bInsert(15)
+# bFindMax()
+
+# Only run the examples when this file is executed directly, not when it is imported
+if __name__ == "__main__":
+    b.bInit()
+    b.bInsert(10)
+    b.bInsert(5)
+    b.bInsert(15)
+    bFindMin()
+    bFindMax()

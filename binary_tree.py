@@ -36,10 +36,12 @@ def bAllocateNode(value):
     return newNode  # Return the index of the newly allocated node
 
 # Function to search for a value in the binary tree
+# Returns the index of the node holding the value, or -1 if it is not in the tree
 def bSearch(value):
     global bRoot, bHeap
     if bEmpty():
         print("Tree is empty")  # Message when the tree is empty
+        return -1
     else:
         current = bRoot  # Start from the root node
         nodeFound = False
@@ -53,8 +55,10 @@ def bSearch(value):
                 current = bRight[current]
         if not nodeFound:
             print(value, "not found")  # Value not found in the tree
+            return -1
         else:
             print(value, "found at position", current)  # Value found
+            return current
 
 # Function to insert a value into the binary tree
 def bInsert(value):

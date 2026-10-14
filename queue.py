@@ -42,13 +42,17 @@ def qAdd(value):
         qCount = qCount + 1  # Increment the count of elements in the queue
 
 # Function to remove a value from the front of the queue
+# Returns the removed value, or None if the queue was empty
 def qRemove():
     global qFront, qCount
 
     if qEmpty():
         print("Queue is empty")  # Message when the queue is empty
+        return None
     else:
+        qFrontValue = qData[qFront]  # Save the front value before it is overwritten
         qData[qFront] = '-'  # Reset the front position to the default placeholder
         # Move the front pointer to the next position (circularly)
         qFront = (qFront + 1) % qSize
         qCount = qCount - 1  # Decrement the count of elements in the queue
+        return qFrontValue  # Return the removed value
