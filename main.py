@@ -29,7 +29,7 @@ def test_queue():
 def test_list():
     l.lInit()
     for i in range(l.lSize + 1):
-        l.lInsert(i, 0)
+        l.lInsertStart(i)
     l.lPrint()
     print()
     

@@ -654,9 +654,33 @@ lInit()
 lShow()
 ''')
 md("""
-### Inserting in ascending order
+### Inserting at the start
 
-`lInsert(value, mode)` supports three modes: `0` = insert at the start, `1` = keep the list in **ascending** order, `2` = keep it in **descending** order. Let's insert 30, 10 and 20 in ascending order:
+The simplest insertion is `lInsertStart(value)`. It takes a node from the free list and puts it **in front of** the current first node — just two pointer changes:
+
+```
+lLinks[newNode] = lStart      # 1) the new node points to the old first node
+lStart = newNode              # 2) the new node becomes the first node
+```
+
+Let's insert 30, 10 and 20 at the start:
+""")
+code('''
+lInit()
+for value in [30, 10, 20]:
+    lInsertStart(value)
+lShow()
+print("Logical order:", lToList())
+''')
+fig(svg_linked, "After lInsertStart(30), lInsertStart(10), lInsertStart(20): each new node goes in front, so the list comes out in reverse order of arrival.")
+md("""
+Each new value goes in front of the others, so the list ends up in the **reverse** order of arrival: `20 → 10 → 30`. No loop is needed, however long the list is.
+
+> ⚠️ **Exam tip:** the order of the two assignments matters. If you set `lStart = newNode` first, you lose the only reference to the old first node — and with it the whole rest of the list!
+
+### Inserting in order
+
+`lInsert(value, mode)` keeps the list **sorted**: mode `1` = **ascending** order, mode `2` = **descending** order. Let's insert the same values, 30, 10 and 20, in ascending order:
 """)
 code('''
 lInit()
@@ -682,9 +706,9 @@ lLinks[newNode] = current     # 1) the new node points to current
 lLinks[prev]    = newNode     # 2) prev now points to the new node
 ```
 
-If `prev` is still `-1`, the new node goes at the very start, so `lStart` changes instead.
+If `prev` is still `-1`, the new value is the smallest, so it goes at the very start — exactly what `lInsertStart` does — and `lStart` changes instead.
 
-> ⚠️ **Exam tip:** the order of those two assignments matters. If you overwrite `lLinks[prev]` first, you lose the only reference to `current`!
+> ⚠️ **Exam tip:** again, the order of the two assignments matters. If you overwrite `lLinks[prev]` first, you lose the only reference to `current`!
 
 ### Deleting, and recycling the node
 """)
@@ -699,14 +723,19 @@ print("Logical order:", lToList())
 ''')
 fig(svg_linked, "After deleting 20 and inserting 25: node 2 was released to the free list and then allocated again.")
 md("""
-### The three insert modes and searching
+### Comparing the insert functions, and searching
 """)
 code('''
-for mode in [0, 1, 2]:
+lInit()
+for value in [3, 1, 2]:
+    lInsertStart(value)
+print("lInsertStart    ->", lToList())
+
+for mode in [1, 2]:
     lInit()
     for value in [3, 1, 2]:
         lInsert(value, mode)
-    print("mode", mode, "->", lToList())
+    print("lInsert, mode", mode, "->", lToList())
 
 print()
 position = lSearch(3)
@@ -717,7 +746,7 @@ print("lSearch returned", position)
 md("""
 `lSearch` prints a message **and returns** the index of the node, or `-1` if the value isn't there — just like a search function in the exam. `lRemove` returns the index of the node it removed (or `-1`).
 
-> 📝 **Efficiency:** searching, ordered insertion (modes 1 and 2) and deletion are **O(n)** because we may have to follow every pointer. Inserting at the start (mode 0) is **O(1)**: notice the `mode != 0` test in the `while` loop of `lInsert`, which skips the traversal completely.
+> 📝 **Efficiency:** `lInsertStart` is **O(1)**: it has no loop, so it takes the same time however long the list is. Searching, ordered insertion (`lInsert`) and deletion are **O(n)**, because we may have to follow every pointer.
 """)
 
 exercise("E5", "Count the nodes",
@@ -800,7 +829,7 @@ lInit()
 for v in [3, 1, 2]:
     lAppend(v)
 check("append 3, 1, 2", lToList(), [3, 1, 2])
-lInsert(0, 0)
+lInsertStart(0)
 lAppend(9)
 check("mixed with lInsert", lToList(), [0, 3, 1, 2, 9])
 

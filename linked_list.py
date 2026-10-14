@@ -74,13 +74,22 @@ def lSearch(value, delete=False):
 def lRemove(value):
     return lSearch(value, True)  # Search and delete the node with the given value
 
-# Function to insert a value into the linked list
-def lInsert(value, mode=0):
+# Function to insert a value at the start of the linked list
+def lInsertStart(value):
+    global lStart
+    if lFull():
+        print("List is full")  # Message when the list is full
+    else:
+        newNode = lAllocateNode(value)  # Allocate a new node
+        lLinks[newNode] = lStart  # The new node points to the old first node
+        lStart = newNode  # The new node becomes the first node
+
+# Function to insert a value into an ordered linked list
+def lInsert(value, mode=1):
     '''
-    Insert a value into the linked list based on the mode:
-    0 - Insert at the start.
-    1 - Insert in ascending order.
-    2 - Insert in descending order.
+    Insert a value keeping the linked list in order:
+    1 - Ascending order.
+    2 - Descending order.
     '''
     global lStart, lFree
     if lFull():
@@ -91,17 +100,16 @@ def lInsert(value, mode=0):
         current = lStart  # Start searching from the first node
         nodeFound = False
         # Traverse the list to find the appropriate position for insertion
-        # (mode 0 always inserts at the start, so it skips the traversal)
-        while mode != 0 and current != -1 and not nodeFound:
+        while current != -1 and not nodeFound:
             if (mode == 1 and lData[current] > value) or (mode == 2 and lData[current] < value):
                 nodeFound = True  # Found the position for insertion
             else:
                 prev = current
                 current = lLinks[current]
-        if mode == 0 or prev == -1:  # Insert at the start or as the first node
+        if prev == -1:  # Insert as the first node
             lLinks[newNode] = lStart
             lStart = newNode
-        else:  # Insert at the appropriate position
+        else:  # Insert between prev and current
             lLinks[newNode] = current
             lLinks[prev] = newNode
 
