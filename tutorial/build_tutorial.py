@@ -133,7 +133,7 @@ def svg_queue(ns):
 
 
 def svg_linked(ns, max_free=3):
-    data, links, start, heap = ns["lData"], ns["lLinks"], ns["lStart"], ns["lHeap"]
+    data, links, start, free = ns["lData"], ns["lLinks"], ns["lStart"], ns["lFree"]
     dw, lw, h, gap = 50, 40, 36, 46
 
     def row(first, y, label, fill, limit=None):
@@ -161,7 +161,7 @@ def svg_linked(ns, max_free=3):
         return out, x
 
     r1, w1 = row(start, 30, "lStart", FILL)
-    r2, w2 = row(heap, 110, "lHeap", FREE, limit=max_free)
+    r2, w2 = row(free, 110, "lFree", FREE, limit=max_free)
     body = r1 + r2
     body += _text(10, 100, "free list (unused nodes)", anchor="start", color="#b45309", size=12)
     return _svg(max(w1, w2, 360) + 10, 160, body)
@@ -214,7 +214,7 @@ This tutorial uses four small Python programs — `stack.py`, `queue.py`, `linke
 
 - explain what an ADT is and why we separate *what* it does from *how* it is built;
 - implement a **stack**, a **circular queue**, a **linked list** and a **binary search tree** using arrays;
-- explain how a **free list** (called the *heap* in this code) recycles unused nodes;
+- explain how a **free list** recycles unused nodes;
 - **trace** the contents of the arrays and pointers after a sequence of operations — a very common exam question;
 - write new operations (search, count, reverse, traversals…) on top of an existing ADT;
 - solve exam-style tasks that combine an ADT with **reading and writing text files**;
@@ -613,16 +613,18 @@ The big idea: the **logical order** of the list (following the pointers) does **
 | `lData[i]` | the data stored in node `i` |
 | `lLinks[i]` | the index of the node that comes **after** node `i` (`-1` = end) |
 | `lStart` | index of the **first** node of the list (`-1` = empty list) |
-| `lHeap` | index of the first **free** node — the start of the **free list** |
+| `lFree` | index of the first **free** node — the start of the **free list** |
 
-### The free list ("heap")
+### The free list
 
-All nodes that are **not** in the list are chained together into a second linked list: the **free list**. At the start *every* node is free, so `lInit()` links them in order: `0 → 1 → 2 → … → 39 → -1`, with `lHeap = 0`.
+All nodes that are **not** in the list are chained together into a second linked list: the **free list**. At the start *every* node is free, so `lInit()` links them in order: `0 → 1 → 2 → … → 39 → -1`, with `lFree = 0`.
 
 - `lAllocateNode(value)` **takes** the first node off the free list (like a pop).
 - `lReleaseNode(node)` **gives** a deleted node back to the front of the free list (like a push).
 
-> 💡 The free list is itself a **stack of unused nodes**. Every node is always in exactly **one** of the two lists — the data list or the free list. "Heap" here just means "pool of free memory"; it has nothing to do with the heap data structure.
+> 💡 The free list is itself a **stack of unused nodes**. Every node is always in exactly **one** of the two lists — the data list or the free list.
+
+> 📚 **Other names you may meet:** some books and exam papers call the free list the **heap** (meaning "pool of free memory"), and its pointer something like `HeapStart`, `FreePtr` or `NextFree`. It is the same idea — and it has nothing to do with the *heap* data structure.
 
 Here is `linked_list.py`, unchanged:
 """)
@@ -635,7 +637,7 @@ def lShow(n=6):
     print("------+-------+-------")
     for i in range(n):
         print(f"{i:>5} | {str(lData[i]):>5} | {lLinks[i]:>6}")
-    print(f"lStart = {lStart}, lHeap = {lHeap}")
+    print(f"lStart = {lStart}, lFree = {lFree}")
 
 def lToList():
     """Return the values in logical (linked) order as a Python list."""
@@ -846,7 +848,7 @@ This rule means that at each node we can throw away half of the remaining tree �
 | `bLeft[i]` | index of the **left** child of node `i` (`-1` = none) |
 | `bRight[i]` | index of the **right** child of node `i` (`-1` = none) |
 | `bRoot` | index of the root (`-1` = empty tree) |
-| `bHeap` | index of the first **free** node |
+| `bFree` | index of the first **free** node |
 
 > 💡 **Clever trick:** while a node is free, it doesn't need children, so the code **reuses `bLeft` as the "next free node" pointer**. That's why `bInit()` sets `bLeft[i] = i + 1`, and why `bAllocateNode` resets both child pointers to `-1` as soon as it hands a node out.
 
@@ -860,7 +862,7 @@ def bShow(n=8):
     print("------+-------+-------+-------")
     for i in range(n):
         print(f"{i:>5} | {str(bData[i]):>5} | {bLeft[i]:>5} | {bRight[i]:>6}")
-    print(f"bRoot = {bRoot}, bHeap = {bHeap}")
+    print(f"bRoot = {bRoot}, bFree = {bFree}")
 ''')
 md("### Building a tree")
 code('''
@@ -1559,7 +1561,7 @@ trace("T3", "Linked list",
 
 `lInsert(40, 1)`, `lInsert(20, 1)`, `lInsert(30, 1)`, `lRemove(20)`, `lInsert(10, 1)`
 
-Copy and complete the table for indexes 0–4, and give the final values of `lStart` and `lHeap`.
+Copy and complete the table for indexes 0–4, and give the final values of `lStart` and `lFree`.
 
 | index | lData | lLinks |
 |---|---|---|
@@ -1578,7 +1580,7 @@ Copy and complete the table for indexes 0–4, and give the final values of `lSt
 | 3 | - | 4 |
 | 4 | - | 5 |
 
-`lStart = 1`, `lHeap = 3`. Logical order: `10 → 30 → 40`. Node 1 was freed when 20 was removed and then **reused** for 10.
+`lStart = 1`, `lFree = 3`. Logical order: `10 → 30 → 40`. Node 1 was freed when 20 was removed and then **reused** for 10.
 """,
 '''
 lInit()
@@ -1596,12 +1598,12 @@ trace("T4", "Binary search tree",
 `50, 30, 70, 20, 40, 60, 80, 35`
 
 **(a)** Draw the tree.
-**(b)** Complete `bData`, `bLeft` and `bRight` for indexes 0–9, and give `bRoot` and `bHeap`.
+**(b)** Complete `bData`, `bLeft` and `bRight` for indexes 0–9, and give `bRoot` and `bFree`.
 **(c)** List the nodes visited when searching for 35.
 **(d)** Give the in-order and pre-order traversals.
 """,
 """
-**(b)** see the table below. `bRoot = 0`, `bHeap = 8`; nodes 8 and 9 are free (`bLeft[8] = 9`, `bLeft[9] = -1`).
+**(b)** see the table below. `bRoot = 0`, `bFree = 8`; nodes 8 and 9 are free (`bLeft[8] = 9`, `bLeft[9] = -1`).
 **(c)** 50 → 30 → 40 → 35
 **(d)** in-order: `20 30 35 40 50 60 70 80`; pre-order: `50 30 20 40 35 70 60 80`
 """,
@@ -1623,8 +1625,8 @@ md("""
 |---|---|---|---|---|---|
 | **Stack** | LIFO | `sTop` | O(1) push | O(1) pop | — |
 | **Circular queue** | FIFO | `qFront`, `qRear` (+ `qCount`) | O(1) at rear | O(1) at front | — |
-| **Linked list** | by links (e.g. sorted) | `lStart`, `lHeap`, `lLinks[]` | O(n) sorted, O(1) at start | O(n) | O(n) linear |
-| **Binary search tree** | left < node ≤ right | `bRoot`, `bHeap`, `bLeft[]`, `bRight[]` | O(log n) avg | — | O(log n) avg, O(n) worst |
+| **Linked list** | by links (e.g. sorted) | `lStart`, `lFree`, `lLinks[]` | O(n) sorted, O(1) at start | O(n) | O(n) linear |
+| **Binary search tree** | left < node ≤ right | `bRoot`, `bFree`, `bLeft[]`, `bRight[]` | O(log n) avg | — | O(log n) avg, O(n) worst |
 
 ### Checklist before the exam
 

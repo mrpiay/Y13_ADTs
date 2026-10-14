@@ -1,6 +1,6 @@
 # Function to initialize the linked list
 def lInit():
-    global lSize, lData, lLinks, lStart, lHeap
+    global lSize, lData, lLinks, lStart, lFree
     lSize = 40  # The maximum size of the linked list
     lData = []  # List to store data values for each node
     lLinks = []  # List to store links (next node indices) for each node
@@ -10,9 +10,9 @@ def lInit():
     # Initialize links list, linking each node to the next one
     for i in range(lSize):
         lLinks.append(i + 1)
-    lLinks[lSize - 1] = -1  # The last node points to -1 (end of the heap)
+    lLinks[lSize - 1] = -1  # The last node points to -1 (end of the free list)
     lStart = -1  # Start of the linked list, -1 indicates the list is empty
-    lHeap = 0  # Points to the first free node in the heap
+    lFree = 0  # Points to the first free node (start of the free list)
 
 # Function to check if the linked list is empty
 def lEmpty():
@@ -20,27 +20,27 @@ def lEmpty():
 
 # Function to check if the linked list is full
 def lFull():
-    return lHeap == -1  # Returns True if there are no free nodes left
+    return lFree == -1  # Returns True if there are no free nodes left
 
-# Function to allocate a new node from the heap
+# Function to allocate a new node from the free list
 def lAllocateNode(value):
-    global lHeap
-    newNode = lHeap  # Get the index of the first free node
-    lData[lHeap] = value  # Assign the value to the new node
-    lHeap = lLinks[lHeap]  # Update the heap pointer to the next free node
+    global lFree
+    newNode = lFree  # Get the index of the first free node
+    lData[lFree] = value  # Assign the value to the new node
+    lFree = lLinks[lFree]  # Update the free pointer to the next free node
     return newNode  # Return the index of the newly allocated node
 
-# Function to release a node back to the heap
+# Function to release a node back to the free list
 def lReleaseNode(node):
-    global lHeap
+    global lFree
     lData[node] = "-"  # Reset the node's data to the default placeholder
-    lLinks[node] = lHeap  # Point the released node to the current heap start
-    lHeap = node  # Update the heap pointer to the released node
+    lLinks[node] = lFree  # Point the released node to the current start of the free list
+    lFree = node  # Update the free pointer to the released node
 
 # Function to search for a value in the linked list
 # Returns the index of the node holding the value, or -1 if it is not in the list
 def lSearch(value, delete=False):
-    global lStart, lHeap
+    global lStart, lFree
     if lEmpty():
         print("List is empty")  # Message when the list is empty
         return -1
@@ -66,7 +66,7 @@ def lSearch(value, delete=False):
                 lStart = lLinks[current]
             else:
                 lLinks[prev] = lLinks[current]  # Skip the current node
-            lReleaseNode(current)  # Release the deleted node back to the heap
+            lReleaseNode(current)  # Release the deleted node back to the free list
         return current  # Index of the node that was found (or removed)
 
 # Function to remove a node with the specified value
@@ -82,7 +82,7 @@ def lInsert(value, mode=0):
     1 - Insert in ascending order.
     2 - Insert in descending order.
     '''
-    global lStart, lHeap
+    global lStart, lFree
     if lFull():
         print("List is full")  # Message when the list is full
     else:

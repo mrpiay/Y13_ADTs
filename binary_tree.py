@@ -1,9 +1,9 @@
 # Function to initialize the binary tree
 def bInit():
-    global bSize, bData, bLeft, bRight, bRoot, bHeap
+    global bSize, bData, bLeft, bRight, bRoot, bFree
     bSize = 10  # Maximum number of nodes in the tree
     bRoot = -1  # Index of the root node, -1 indicates the tree is empty
-    bHeap = 0  # Index of the first available free node in the heap
+    bFree = 0  # Index of the first free node (start of the free list)
     bData = []  # List to store data values for each node
     bRight = []  # List to store the right child index for each node
     bLeft = []  # List to store the left child index for each node
@@ -15,7 +15,7 @@ def bInit():
     for i in range(bSize):
         bRight.append(-1)  # Initially, no right child for any node
         bLeft.append(i + 1)  # Each node points to the next as a free node
-    bLeft[bSize - 1] = -1  # The last node in the heap points to -1 (end of heap)
+    bLeft[bSize - 1] = -1  # The last free node points to -1 (end of the free list)
 
 # Function to check if the binary tree is empty
 def bEmpty():
@@ -23,14 +23,14 @@ def bEmpty():
 
 # Function to check if the binary tree is full
 def bFull():
-    return bHeap == -1  # Returns True if there are no free nodes left in the heap
+    return bFree == -1  # Returns True if there are no free nodes left
 
-# Function to allocate a new node from the heap
+# Function to allocate a new node from the free list
 def bAllocateNode(value):
-    global bHeap, bRight, bLeft
-    newNode = bHeap  # Get the index of the first free node
-    bData[bHeap] = value  # Assign the value to the new node
-    bHeap = bLeft[bHeap]  # Update the heap pointer to the next free node
+    global bFree, bRight, bLeft
+    newNode = bFree  # Get the index of the first free node
+    bData[bFree] = value  # Assign the value to the new node
+    bFree = bLeft[bFree]  # Update the free pointer to the next free node
     bLeft[newNode] = -1  # Initialize the left child of the new node as -1
     bRight[newNode] = -1  # Initialize the right child of the new node as -1
     return newNode  # Return the index of the newly allocated node
@@ -38,7 +38,7 @@ def bAllocateNode(value):
 # Function to search for a value in the binary tree
 # Returns the index of the node holding the value, or -1 if it is not in the tree
 def bSearch(value):
-    global bRoot, bHeap
+    global bRoot, bFree
     if bEmpty():
         print("Tree is empty")  # Message when the tree is empty
         return -1
@@ -62,7 +62,7 @@ def bSearch(value):
 
 # Function to insert a value into the binary tree
 def bInsert(value):
-    global bRoot, bHeap
+    global bRoot, bFree
     if bFull():
         print("Tree is full")  # Message when the tree is full
     else:
