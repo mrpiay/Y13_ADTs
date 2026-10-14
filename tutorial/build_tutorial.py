@@ -19,6 +19,20 @@ def src(name):
         return f.read().strip() + "\n"
 
 
+# Data files used in section 6 (embedded so the repo does not need them)
+DATA_FILES = {
+    "stack_2.txt": "push 3\npush 5\npush 7\npop\npip 3\npop\n",
+    "stack.txt": "1\n2\n 3\n\n4",
+    "queue.txt": "  enQueue , a  \nenQueue , b\ndeQueue\nenQueue , c\n",
+}
+
+
+def make_file_cell(name):
+    """Code that creates a data file, so the notebook works in Colab."""
+    return (f"# Create the data file {name} (in the exam this file is given to you)\n"
+            f"with open({name!r}, \"w\") as f:\n    f.write({DATA_FILES[name]!r})")
+
+
 # --------------------------------------------------------------------------
 # Cell model
 #   md(text)                      markdown cell (notebook + PDF)
@@ -203,6 +217,7 @@ This tutorial uses four small Python programs — `stack.py`, `queue.py`, `linke
 - explain how a **free list** (called the *heap* in this code) recycles unused nodes;
 - **trace** the contents of the arrays and pointers after a sequence of operations — a very common exam question;
 - write new operations (search, count, reverse, traversals…) on top of an existing ADT;
+- solve exam-style tasks that combine an ADT with **reading and writing text files**;
 - get a first feel for **efficiency**: which operations are fast (O(1)) and which get slower as the data grows (O(n)).
 
 **How to use it**
@@ -213,7 +228,20 @@ This tutorial uses four small Python programs — `stack.py`, `queue.py`, `linke
 """)
 
 code('''
-# Setup: a tiny helper used by the test cells in this tutorial.
+# Setup: small helpers used by the test cells in this tutorial.
+import os
+
+def readLines(fileName):
+    """The lines of a text file without their newlines, or None if the file does not exist."""
+    if not os.path.exists(fileName):
+        return None
+    with open(fileName) as f:
+        return f.read().splitlines()
+
+def deleteFile(fileName):
+    if os.path.exists(fileName):
+        os.remove(fileName)
+
 def check(label, got, expected):
     if got == expected:
         print(f"✅ {label}")
@@ -1017,9 +1045,297 @@ def bHeight(node):
     return 1 + max(bHeight(bLeft[node]), bHeight(bRight[node]))
 ''')
 
-# ---------------------------------------------------------------- 6. Exam practice
+# ---------------------------------------------------------------- 6. ADTs and text files
 md("""
-# 6. Exam-style tracing questions
+# 6. Exam-style tasks: ADTs and text files
+
+A very common exam task mixes **two skills**: you are given an ADT and a **text file of commands** (or data). You must read the file line by line and apply each line to the ADT — and sometimes write the results to another file.
+
+### Reading and writing text files — the essentials
+
+| Code | What it does |
+|---|---|
+| `f = open("data.txt", "r")` … `f.close()` | open a file for **reading** (`"w"` = write, replacing the file; `"a"` = append) |
+| `f.readline()` | reads **one** line, **including** the `"\\n"` at the end; returns `""` at the end of the file |
+| `for line in f:` | loops over **every** line of the file |
+| `line.strip()` | removes spaces and the `"\\n"` from both ends |
+| `line.split(",")` | cuts a string into a **list** at each comma: `"enQueue, a"` → `["enQueue", " a"]` |
+| `line.split()` | no argument: splits at any run of spaces and drops the `"\\n"` |
+| `int(text)` | converts `"20"` into the number `20` — data read from a file is **always text** |
+| `f.write(text + "\\n")` | writes to a file opened with `"w"` or `"a"`; you must add the `"\\n"` yourself |
+| `with open(...) as f:` | opens the file and **closes it automatically** at the end of the block |
+""")
+
+md("""
+## 6.1 A stack driven by a file
+
+Each line of `stack_2.txt` is a command for the stack: `push` followed by a number, or `pop`. One line contains a mistake.
+""")
+code(make_file_cell("stack_2.txt"))
+md("""
+This is the **classic exam pattern**: read the first line **before** the loop, and the next line at the **end** of the loop body. When `readline()` reaches the end of the file it returns `""`, which `.strip().split(" ")` turns into `[""]` — the stopping condition.
+""")
+code('''
+def processCommands(fileName):
+    sInit()
+    f = open(fileName, "r")
+    line = f.readline().strip().split(" ")
+    while line != [""]:
+        if line[0] == "push":
+            sPush(int(line[1]))            # the number arrives as text
+            print("push", line[1])
+        elif line[0] == "pop":
+            print("pop  ->", sPop())
+        else:
+            print("Wrong command:", line[0])
+        line = f.readline().strip().split(" ")
+    f.close()
+    print("Stack at the end (top first):")
+    sPrint()
+
+processCommands("stack_2.txt")
+''')
+
+md("""
+### A trap: blank lines
+
+`stack.txt` holds some numbers, but there is a **blank line** before the last one, and one line starts with a space:
+""")
+code(make_file_cell("stack.txt"))
+code('''
+f = open("stack.txt", "r")
+line = f.readline().strip().split(" ")
+while line != [""]:
+    print(line)
+    line = f.readline().strip().split(" ")
+f.close()
+print("Finished - but where is the 4?")
+''')
+md("""
+The loop stops at the blank line, because a blank line **also** becomes `[""]`, so the `4` is never read. (The space before the `3` is harmless: `strip()` removes it.)
+
+### A more robust version
+
+The exam-style loop is fine when the file is exactly as described. Better programs (and the best exam answers) add some protection:
+
+1. `with open(...) as f:` closes the file **automatically**, even if an error happens.
+2. `for line in f:` reads **every** line to the end of the file, so blank lines can simply be skipped.
+3. `try` / `except FileNotFoundError` stops the program crashing if the file is missing. *Mark schemes often give credit for exception handling when a file is opened.*
+4. Check that the line has the right shape **before** using `parts[1]` — otherwise a line like `push` on its own crashes with an `IndexError`.
+5. Check `sEmpty()` before popping, instead of relying on the ADT's error message.
+""")
+code('''
+def processCommandsSafe(fileName):
+    sInit()
+    try:
+        with open(fileName, "r") as f:
+            for line in f:
+                parts = line.split()
+                if not parts:
+                    continue                          # skip blank lines
+                if parts[0] == "push" and len(parts) == 2 and parts[1].isdigit():
+                    sPush(int(parts[1]))
+                elif parts[0] == "pop" and len(parts) == 1:
+                    if sEmpty():
+                        print("Cannot pop: the stack is empty")
+                    else:
+                        print("pop  ->", sPop())
+                else:
+                    print("Wrong command:", line.strip())
+    except FileNotFoundError:
+        print("File", fileName, "not found")
+        return
+    print("Stack at the end (top first):")
+    sPrint()
+
+processCommandsSafe("stack_2.txt")
+print()
+processCommandsSafe("missing.txt")
+''')
+md("And reading `stack.txt` with `for line in f:` finds all four numbers:")
+code('''
+sInit()
+with open("stack.txt", "r") as f:
+    for line in f:
+        if line.strip() != "":                # ignore blank lines
+            sPush(int(line))                  # int() ignores spaces and the newline
+sPrint()
+''')
+
+md("""
+## 6.2 A queue driven by a file
+
+Each line of `queue.txt` is `enQueue, <item>` or `deQueue`. Look carefully at the first line: it has spaces **everywhere**.
+""")
+code(make_file_cell("queue.txt"))
+md("""
+Splitting `"  enQueue , a  "` at the comma gives `["  enQueue ", " a  "]`: neither part would match `"enQueue"` or be a clean value. So we **strip every part** before using it.
+""")
+code('''
+def processQueueCommands(fileName):
+    qInit()
+    with open(fileName, "r") as f:
+        for line in f:
+            parts = line.split(",")
+            for pos in range(len(parts)):
+                parts[pos] = parts[pos].strip()   # remove the spaces around each part
+            if parts[0] == "enQueue":
+                qAdd(parts[1])
+                print("enQueue", parts[1])
+            elif parts[0] == "deQueue":
+                print("deQueue ->", qRemove())
+            else:
+                print("Wrong command:", parts[0])
+    qShow()
+
+processQueueCommands("queue.txt")
+''')
+
+md("""
+### The same ADT, a different exam style
+
+Exam questions do not always write the ADT the way this tutorial does. These other conventions are very common:
+
+| | This tutorial | Another common exam style |
+|---|---|---|
+| Did it work? | prints a message | `push`/`pop`/`enQueue`/`deQueue` **return `True` or `False`** |
+| Removed value | **returned** by `sPop()` / `qRemove()` | stored in a **global** variable, e.g. `topValue`, `frontValue` |
+| Queue rear pointer | `qRear` = index of the **last item** (starts at `-1`) | `rear` = index of the **next free slot** (starts at `0`) |
+| Wrapping round | `(qRear + 1) % qSize` | `rear = rear + 1`, then `if rear == SIZE: rear = 0` — the same thing |
+
+> ⚠️ Read the question carefully: does `pop` return the value or a Boolean? Does the rear pointer point at the last item or at the next free space?
+""")
+
+exercise("E11", "Queue commands from a file, results to a file",
+"""
+Write `processQueueFile(inName, outName)` using the queue from section 3 (`qInit`, `qAdd`, `qRemove`, `qFull`, `qEmpty`…). It must:
+
+1. read **every** line of `inName` — each line is `enQueue, <item>` or `deQueue`, possibly with extra spaces;
+2. carry out each command, **counting** the commands that cannot be carried out: an `enQueue` when the queue is full, a `deQueue` when it is empty, or a wrong command;
+3. at the end, **write** the items still in the queue to the file `outName`, from front to rear, one per line;
+4. **return** the number of commands that could not be carried out.
+
+*Hint:* check `qFull()` / `qEmpty()` **before** calling `qAdd` / `qRemove`. To write the queue, copy the loop in `qPrint()`.
+""",
+'''
+def processQueueFile(inName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("queue_out.txt")
+with open("queue_test.txt", "w") as f:
+    f.write("enQueue, A\\n enQueue , B \\nenQueue, C\\nenQueue, D\\nenQueue, E\\ndeQueue\\nenQueue, F\\njump, G\\n")
+check("commands that failed (E when full, jump)", processQueueFile("queue_test.txt", "queue_out.txt"), 2)
+check("queue written front to rear", readLines("queue_out.txt"), ["B", "C", "D", "F"])
+
+with open("queue_test.txt", "w") as f:
+    f.write("deQueue\\nenQueue, X\\n")
+check("deQueue on an empty queue fails", processQueueFile("queue_test.txt", "queue_out.txt"), 1)
+check("only X is left", readLines("queue_out.txt"), ["X"])
+''',
+'''
+def processQueueFile(inName, outName):
+    qInit()
+    failed = 0
+    with open(inName, "r") as f:
+        for line in f:
+            parts = line.split(",")
+            for pos in range(len(parts)):
+                parts[pos] = parts[pos].strip()
+            if parts[0] == "enQueue" and len(parts) == 2 and not qFull():
+                qAdd(parts[1])
+            elif parts[0] == "deQueue" and not qEmpty():
+                qRemove()
+            else:
+                print("Could not carry out:", line.strip())
+                failed = failed + 1
+    with open(outName, "w") as out:
+        current = qFront
+        for i in range(qCount):              # front to rear, wrapping round
+            out.write(str(qData[current]) + "\\n")
+            current = (current + 1) % qSize
+    return failed
+''')
+
+exercise("E12", "Reverse a file with a stack",
+"""
+Write `reverseFile(inName, outName)` that copies the lines of `inName` into `outName` **in reverse order**, using the stack from section 2 (`sInit`, `sPush`, `sPop`, `sEmpty`).
+
+*Hint:* push every line (without its `"\\n"`), then pop until the stack is empty, writing each line to the output file.
+
+🤔 *What would happen with a file of more than `sSize` (40) lines?*
+""",
+'''
+def reverseFile(inName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("poem_reversed.txt")
+with open("poem.txt", "w") as f:
+    f.write("Roses are red\\nViolets are blue\\nStacks are LIFO\\nAnd queues are FIFO too\\n")
+reverseFile("poem.txt", "poem_reversed.txt")
+check("lines reversed", readLines("poem_reversed.txt"),
+      ["And queues are FIFO too", "Stacks are LIFO", "Violets are blue", "Roses are red"])
+''',
+'''
+def reverseFile(inName, outName):
+    sInit()
+    with open(inName, "r") as f:
+        for line in f:
+            sPush(line.rstrip("\\n"))     # store the line without its newline
+    with open(outName, "w") as out:
+        while not sEmpty():
+            out.write(sPop() + "\\n")    # last line in, first line out
+''')
+
+exercise("E13", "⭐ Challenge: evaluate Reverse Polish expressions",
+"""
+In **Reverse Polish Notation (RPN)** the operator comes **after** its two operands: `3 4 +` means `3 + 4`, and `5 1 2 + 4 * + 3 -` means `5 + (1 + 2) * 4 - 3`. RPN needs no brackets, and it is evaluated with a **stack**:
+
+- a **number** → push it;
+- an **operator** → pop the **right** operand, then pop the **left** operand, and push the result.
+
+At the end, the answer is the only item left on the stack.
+
+Write `evaluateRPNFile(inName, outName)`: each line of `inName` is an RPN expression (integers and the operators `+`, `-`, `*`, separated by spaces). Write the value of each expression to `outName`, one per line. Use the stack from section 2.
+""",
+'''
+def evaluateRPNFile(inName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("rpn_results.txt")
+with open("rpn.txt", "w") as f:
+    f.write("3 4 +\\n5 1 2 + 4 * + 3 -\\n6 2 - 3 *\\n10 4 -\\n")
+evaluateRPNFile("rpn.txt", "rpn_results.txt")
+check("RPN results", readLines("rpn_results.txt"), ["7", "14", "12", "6"])
+''',
+'''
+def evaluateRPNFile(inName, outName):
+    with open(inName, "r") as f, open(outName, "w") as out:
+        for line in f:
+            sInit()                              # a fresh stack for each expression
+            for token in line.split():
+                if token in ["+", "-", "*"]:
+                    right = sPop()               # popped first = right operand
+                    left = sPop()
+                    if token == "+":
+                        sPush(left + right)
+                    elif token == "-":
+                        sPush(left - right)
+                    else:
+                        sPush(left * right)
+                else:
+                    sPush(int(token))
+            out.write(str(sPop()) + "\\n")
+''')
+
+# ---------------------------------------------------------------- 7. Exam practice
+md("""
+# 7. Exam-style tracing questions
 
 In the exam you won't have a computer: you will be asked to **trace** the arrays and pointers by hand. Do these **on paper first**, then check your answers.
 """)
@@ -1135,7 +1451,7 @@ bPreOrder(bRoot)
 
 # ---------------------------------------------------------------- 7. Summary
 md("""
-# 7. Summary
+# 8. Summary
 
 | ADT | Order | Pointers | Add | Remove | Search |
 |---|---|---|---|---|---|
@@ -1155,6 +1471,8 @@ md("""
 - [ ] I can draw a BST from an insertion order **and** fill in its `bLeft`/`bRight` arrays.
 - [ ] I can write pre-, in- and post-order traversals recursively.
 - [ ] I can say whether an operation is O(1), O(n) or O(log n) by looking at its loops.
+- [ ] I can read commands from a text file, apply them to an ADT and write results to another file.
+- [ ] I can protect file code with `with open`, `for line in f`, and `try` / `except FileNotFoundError`.
 
 ### Common mistakes
 
@@ -1170,6 +1488,7 @@ md("""
 # --------------------------------------------------------------------------
 # Execute everything in order (to get real outputs and diagrams)
 # --------------------------------------------------------------------------
+os.chdir(WORK)  # data files written by the cells go to the work dir, not the repo
 NS = {}
 FAILURES = []
 
