@@ -1333,6 +1333,172 @@ def evaluateRPNFile(inName, outName):
             out.write(str(sPop()) + "\\n")
 ''')
 
+md("""
+## 6.3 A linked list and a tree loaded from files
+
+The same pattern works with any ADT. A neat trick: if each value read from the file is inserted into an **ordered linked list** (`lInsert(value, 1)`), the data is **already sorted** when the file has been read — no separate sorting step.
+""")
+code('''
+with open("scores.txt", "w") as f:
+    f.write("72\\n45\\n\\n88\\n 60\\n")
+
+lInit()
+with open("scores.txt", "r") as f:
+    for line in f:
+        if line.strip() != "":           # skip blank lines
+            lInsert(int(line), 1)        # mode 1 keeps the list in ascending order
+print("Scores in order:", lToList())
+''')
+md("""
+A **binary search tree** does the same job: insert every value, then an **in-order traversal** visits them in order. This is called a **tree sort**. It works with text too, because `<` compares strings **alphabetically** — but careful: every capital letter comes before every lowercase one (`"Zoe" < "adam"` is `True`).
+""")
+
+exercise("E14", "Linked list commands from a file",
+"""
+Write `processListFile(inName, outName)` using the linked list from section 4. Each line of `inName` is `insert, <number>` or `delete, <number>`, possibly with extra spaces. The function must:
+
+1. keep the list in **ascending** order (`lInsert(value, 1)`), remembering to convert the number with `int()`;
+2. **count** the commands that cannot be carried out: an `insert` when the list is full, a `delete` of a value that is not in the list, or a wrong command;
+3. **write** the final list to `outName`, in order, one number per line;
+4. **return** the number of commands that could not be carried out.
+
+*Hint:* `lRemove(value)` returns `-1` when the value is not in the list.
+""",
+'''
+def processListFile(inName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("list_out.txt")
+with open("list_test.txt", "w") as f:
+    f.write("insert, 30\\ninsert, 10\\n insert , 20 \\ndelete, 10\\ndelete, 99\\nmove, 5\\ninsert, 15\\n")
+check("commands that failed (delete 99, move)", processListFile("list_test.txt", "list_out.txt"), 2)
+check("final list written in order", readLines("list_out.txt"), ["15", "20", "30"])
+
+with open("list_test.txt", "w") as f:
+    f.write("delete, 4\\n")
+check("delete from an empty list fails", processListFile("list_test.txt", "list_out.txt"), 1)
+check("empty list gives an empty file", readLines("list_out.txt"), [])
+''',
+'''
+def processListFile(inName, outName):
+    lInit()
+    failed = 0
+    with open(inName, "r") as f:
+        for line in f:
+            parts = line.split(",")
+            for pos in range(len(parts)):
+                parts[pos] = parts[pos].strip()
+            if parts[0] == "insert" and len(parts) == 2 and not lFull():
+                lInsert(int(parts[1]), 1)
+            elif parts[0] == "delete" and len(parts) == 2:
+                if lRemove(int(parts[1])) == -1:     # -1: the value was not in the list
+                    failed = failed + 1
+            else:
+                print("Could not carry out:", line.strip())
+                failed = failed + 1
+    with open(outName, "w") as out:
+        current = lStart
+        while current != -1:                         # follow the pointers in order
+            out.write(str(lData[current]) + "\\n")
+            current = lLinks[current]
+    return failed
+''')
+
+exercise("E15", "Tree sort: words from a file in alphabetical order",
+"""
+Write `treeSortFile(inName, outName)` using the binary tree from section 5. It must:
+
+1. read every line of `inName`, strip it, and **insert** each word into the tree (skip blank lines);
+2. if the tree is **full** (`bFull()`), don't insert the word — count it instead;
+3. **write** the words to `outName` in **alphabetical order**, one per line, with an in-order traversal;
+4. **return** how many words could not be stored.
+
+*Hint:* write a small **recursive** helper `writeInOrder(node, out)` that writes the left subtree, then the node, then the right subtree to the open file `out`. Remember that `bSize` is only 10!
+""",
+'''
+def treeSortFile(inName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("words_sorted.txt")
+with open("words.txt", "w") as f:
+    f.write("pear\\napple\\n\\nmango\\n  kiwi \\nbanana\\n")
+check("no words lost", treeSortFile("words.txt", "words_sorted.txt"), 0)
+check("words in alphabetical order", readLines("words_sorted.txt"),
+      ["apple", "banana", "kiwi", "mango", "pear"])
+
+with open("words.txt", "w") as f:
+    f.write("\\n".join(["w" + str(i) for i in range(12)]) + "\\n")
+check("12 words, room for 10", treeSortFile("words.txt", "words_sorted.txt"), 2)
+check("10 words written", len(readLines("words_sorted.txt") or []), 10)
+''',
+'''
+def writeInOrder(node, out):
+    if node != -1:                          # base case: empty subtree, do nothing
+        writeInOrder(bLeft[node], out)
+        out.write(bData[node] + "\\n")
+        writeInOrder(bRight[node], out)
+
+def treeSortFile(inName, outName):
+    bInit()
+    notStored = 0
+    with open(inName, "r") as f:
+        for line in f:
+            word = line.strip()
+            if word != "":
+                if bFull():
+                    notStored = notStored + 1
+                else:
+                    bInsert(word)
+    with open(outName, "w") as out:
+        writeInOrder(bRoot, out)
+    return notStored
+''')
+
+exercise("E16", "Build a tree from one file, answer searches from another",
+"""
+Write `searchFromFile(dataName, queriesName, outName)`:
+
+1. build a binary search tree from the numbers in `dataName` (one per line);
+2. for each number in `queriesName`, search the tree with `bSearch` and write one line to `outName`: `<number> found` or `<number> not found`.
+
+*Hint:* `bSearch` returns `-1` when the value is not in the tree. Don't forget `int()` — the tree stores **numbers**, and `"40"` is not equal to `40`!
+""",
+'''
+def searchFromFile(dataName, queriesName, outName):
+    # Your code here
+    pass
+''',
+'''
+deleteFile("search_results.txt")
+with open("tree_data.txt", "w") as f:
+    f.write("50\\n30\\n70\\n20\\n40\\n60\\n80\\n")
+with open("queries.txt", "w") as f:
+    f.write("40\\n65\\n80\\n10\\n")
+searchFromFile("tree_data.txt", "queries.txt", "search_results.txt")
+check("search results", readLines("search_results.txt"),
+      ["40 found", "65 not found", "80 found", "10 not found"])
+''',
+'''
+def searchFromFile(dataName, queriesName, outName):
+    bInit()
+    with open(dataName, "r") as f:
+        for line in f:
+            if line.strip() != "":
+                bInsert(int(line))
+    with open(queriesName, "r") as queries, open(outName, "w") as out:
+        for line in queries:
+            if line.strip() != "":
+                value = int(line)
+                if bSearch(value) == -1:
+                    out.write(str(value) + " not found\\n")
+                else:
+                    out.write(str(value) + " found\\n")
+''')
+
 # ---------------------------------------------------------------- 7. Exam practice
 md("""
 # 7. Exam-style tracing questions

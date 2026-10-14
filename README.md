@@ -17,7 +17,7 @@ Array-based implementations of the classic A Level ADTs, plus a full tutorial wi
 - **Interactive notebook:** [tutorial/ADTs_Y13_Tutorial.ipynb](tutorial/ADTs_Y13_Tutorial.ipynb). Click the *Open in Colab* badge above, then *File → Save a copy in Drive* so you can write your answers.
 - **PDF version:** [tutorial/ADTs_Y13_Tutorial.pdf](tutorial/ADTs_Y13_Tutorial.pdf)
 
-Contents: what an ADT is · stack · circular queue · linked list · binary search tree · 10 coding exercises with tests and solutions · 4 exam-style tracing questions · summary and exam checklist.
+Contents: what an ADT is (and a first look at Big-O) · stack · circular queue · linked list · binary search tree · exam-style tasks combining ADTs with text files · 16 coding exercises with tests and solutions · 4 exam-style tracing questions · summary and exam checklist.
 
 ## Running the code locally
 
